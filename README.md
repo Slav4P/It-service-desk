@@ -1,30 +1,68 @@
-# Сервис заявок ИТ-отдела — учебный шаблон
+# It-service-desk
 
-## Начало работы
+Учебная информационная система для учета заявок на обслуживание оборудования.
 
-Создайте личный репозиторий из шаблона преподавателя (Use this template), затем:
+## Технологии
+
+- **Backend:** Python, Flask, MySQL (Connector/Python)
+- **Frontend:** Angular, TypeScript, Reactive Forms
+- **Тесты:** Pytest (backend), Vitest (frontend), Playwright (E2E)
+
+## Установка и запуск
+
+### 1. Подготовка базы данных
+
+Убедитесь, что MySQL запущен. Создайте базу данных и пользователя (если еще не сделано):
 
 ```bash
-git clone URL_ЛИЧНОГО_РЕПОЗИТОРИЯ it-service-desk
-cd it-service-desk
-git switch -c course
-python -m venv backend/.venv
+cd database
+python bootstrap.py
+```
+### 2. Запуск Backend (Flask)
+
+Активируйте виртуальное окружение:
+- Windows: .\backend\.venv\Scripts\Activate.ps1
+- macOS/Linux: source backend/.venv/bin/activate
+Создайте файл backend/.env на основе .env.example и укажите данные от БД:
+```.env
+STORAGE=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=service_desk_course
+DB_USER=course_app
+DB_PASSWORD=ваш_пароль
+```
+Запустите сервер:
+```bash
+cd backend
+python -m flask --app app run --debug --port 5000
 ```
 
-На macOS/Linux до активации может потребоваться команда python3 вместо python.
-Активируйте окружение: macOS/Linux — `source backend/.venv/bin/activate`,
-Windows PowerShell — `.\backend\.venv\Scripts\Activate.ps1`.
-
+### 3. Запуск Frontend (Angular)
+В новом терминале:
 ```bash
-python -m pip install -r backend/requirements-dev.txt
 cd frontend
 npm ci
-npm run check:starter
 npm start
 ```
+Приложение будет доступно по адресу: http://localhost:4200.
 
-Требуются Git, Python 3.12 и Node.js 24.x. Angular устанавливается локально через npm ci,
-глобальный ng и ng new не нужны. Версии зафиксированы lock-файлом.
-MySQL 8.4 устанавливается в ЛР №3, браузер Playwright — в ЛР №4.
+## Проверки (Тесты)
 
+### Модульные тесты фронтенда:
+```bash
+cd frontend
+npm test -- --watch=false
+npm run build
+```
+### E2E-тесты (Playwright):
+Запускаются при работающих Flask и Angular
+```bash
+cd e2e
+npm ci
+npm playwright install chromium
+npm test
+```
 
+## Безопасность
+В проекте не реализована система авторизации и ролей. Это учебная локальная ИС, не предназначенная для публичного доступа. Файлы .env и пароли не публикуются в репозитории (добавлены в .gitignore).

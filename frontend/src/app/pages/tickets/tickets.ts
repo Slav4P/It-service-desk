@@ -1,44 +1,54 @@
-import { Component, computed, signal } from '@angular/core';
-import { DEMO_TICKETS } from '../../data/demo-tickets';
-import { TicketStatus } from '../../models/ticket';
-import { filterTickets, TicketFilter } from '../../features/tickets/filter-tickets';
-
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { DatePipe } from '@angular/common';
+import { Subscription } from 'rxjs';
+import { TicketsApi, errorMessage } from '../../services/tickets-api';
+import { Ticket, STATUS_LABELS } from '../../models/ticket';
 @Component({
   selector: 'app-tickets',
-  standalone: true,
+  imports: [RouterLink, FormsModule, DatePipe],
   templateUrl: './tickets.html',
-  styleUrl: './tickets.css',
 })
-export class Tickets {
-  readonly tickets = signal(DEMO_TICKETS);
-  readonly filter = signal<TicketFilter>('all');
-  // Соединение состояния с чистой функцией уже подготовлено.
-  readonly statusLabels: Record<TicketStatus, string> = {
-    new: 'Новая', in_progress: 'В работе', closed: 'Закрыта',
-  };
-
-  searchQuery = signal<string>('');
-
-  visibleTickets = computed(() => {
-    const statusFiltered = filterTickets(this.tickets(), this.filter());
-
-    const query = this.searchQuery().trim().toLowerCase();
-
-    if (!query) {
-      return statusFiltered;
-    }
-
-    return statusFiltered.filter(ticket => ticket.title.toLowerCase().includes(query));
-
-  });
-
-  setFilter(mode: TicketFilter): void {
-    // TODO(LR1-04): сохраните выбранный режим в сигнале filter.
-    this.filter.set(mode);
+export class Tickets implements OnInit, OnDestroy {
+  private readonly api = inject(TicketsApi);
+  private request?: Subscription;
+  readonly tickets = signal<Ticket[]>([]);
+  readonly loading = signal(true);
+  readonly error = signal('');
+  readonly mode = signal('all');
+  readonly labels = STATUS_LABELS;
+  readonly filters = [
+    { id: 'all', label: 'Все' },
+    { id: 'open', label: 'Незакрытые' },
+    { id: 'new', label: 'Новые' },
+    { id: 'in_progress', label: 'В работе' },
+    { id: 'closed', label: 'Закрытые' },
+  ];
+  query = '';
+  ngOnInit() {
+    this.load();
   }
-
-  onSearchChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.searchQuery.set(input.value);
+  ngOnDestroy() {
+    this.request?.unsubscribe();
+  }
+  setFilter(mode: string) {
+    this.mode.set(mode);
+    this.load();
+  }
+  load() {
+    this.request?.unsubscribe();
+    this.loading.set(true);
+    this.error.set('');
+    this.request = this.api.list(this.query, this.mode()).subscribe({
+      next: (data) => {
+        this.tickets.set(data);
+        this.loading.set(false);
+      },
+      error: (err) => {
+        this.error.set(errorMessage(err));
+        this.loading.set(false);
+      },
+    });
   }
 }
